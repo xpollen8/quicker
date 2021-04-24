@@ -1,0 +1,22 @@
+{
+  "name": "quickish",
+  "version": "1.0.0",
+  "description": "stock quote management",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://https://github.com/xpollen8/quickish.git"
+  },
+  "keywords": [
+    "stock",
+    "quotes"
+  ],
+  "author": "xpollen8",
+  "license": "ISC",
+  "dependencies": {
+    "mywrap": "git+https://github.com/xpollen8/mywrap.git"
+  }
+}

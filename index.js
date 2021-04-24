@@ -10,10 +10,14 @@ class Quicker extends MyWrap {
 		super(dbConfig);
 		this.database = dbConfig.database;
 		this.config = config.quicker;
+		this.date = config.date;
+		this.account = config.account;
 	}
 
 	setDate = (date = new Date()) => { this.date = new Date(date).toISOString(); console.log("DATE", date); }
 	getDate = () => this.date;
+	setAccount = (account) => this.account = account;
+	getAccount = () => this.account;
 	getDatabase = () => this.database;
 
 	run = async () => await this.start();
@@ -69,7 +73,7 @@ class Quicker extends MyWrap {
 			if (ret[0]) {
 				return ret[0];
 			}
-			console.log(`ERROR - security found in '${this.getDatabase()}.holding' w/no '${this.getDatabase()}.security' row`, symbol);
+			console.log(`ERROR - security found in '${this.getDatabase()}.holding' w/no '${this.getDatabase()}.security' row`, symbol, `on date ${this.getDate()}`);
 			return {};
 		};
 
@@ -86,8 +90,8 @@ class Quicker extends MyWrap {
 		const db = this.getDb();
 		const date = this.getDate();
 		let account = "";
-		if (this.config.account) {
-			account = ` and account='${this.config.account}'`;
+		if (this.getAccount()) {
+			account = ` and account='${this.getAccount()}'`;
 		}
 		const [ res ] = await db.query(`select h.account, q.symbol, sum(h.shares) as shares, q.close, sum(h.shares) * q.close as value, sum(h.commission) as fees, q.date, sum(h.shares * h.price) as basis
 			from ${this.getDatabase()}.holding h, ${this.getDatabase()}.quote q
@@ -106,7 +110,9 @@ class Quicker extends MyWrap {
 	};
 
 	fetchValuesByDate = async (date) => {
-		this.setDate(date);
+		if (!this.getDate()) {
+			this.setDate(date);
+		}
 		const securities = await this.fetchSecuritiesByDate();
 		const holdings = await this.fetchHoldingsByDate();
 
@@ -121,7 +127,7 @@ class Quicker extends MyWrap {
 		for (var holding of holdings) {
 			const  { account, symbol, percents, sectors, security } = securities.find(f => f.symbol === holding.symbol) || {};
 			if (!symbol) {
-				console.log(`ERROR - security found in '${this.getDatabase()}.holding' w/no '${this.getDatabase()}.security' row`, holding.symbol);
+				console.log(`ERROR - security found in '${this.getDatabase()}.holding' w/no '${this.getDatabase()}.security' row`, holding.symbol, `on date ${this.getDate()}`);
 			} else {
 				const value = holding.value || 0;
 				sums.fees += holding.fees;

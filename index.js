@@ -4,11 +4,15 @@ class Quicker extends MyWrap {
 
 	constructor(config = {}) {
 		super(config.mysql);
-		this.config = config.quicker;
+		this.config = {
+			database: 'stock',
+			...config.quicker,
+		};
 	}
 
 	setDate = (date = new Date()) => { this.date = new Date(date).toISOString(); console.log("DATE", date); }
 	getDate = () => this.date;
+	getDatabase = () => this.config.database;
 
 	run = async () => await this.start();
 
@@ -17,7 +21,7 @@ class Quicker extends MyWrap {
 	fetchGoalsByDate = async () => {
 		const db = this.getDb();
 		const date = this.getDate();
-		const [ res ] = await db.query(`select * from stock.goal where (date IS NULL OR date <= '${date}') order by name, date`);
+		const [ res ] = await db.query(`select * from ${this.getDatabase()}.goal where (date IS NULL OR date <= '${date}') order by name, date`);
 		const goal = {};
 		for (var { name, percentage } of res ) {
 			goal[name] = percentage;	// keeps most recent percentage
@@ -31,8 +35,8 @@ class Quicker extends MyWrap {
 
 		const fetchSectors = async (symbol) => {
 			const [ res ] = await db.query(`
-				select p.* from stock.sectorage p
-					inner join (select symbol, max(date) as date from stock.sectorage where (date IS NULL OR date <= '${date}') group by 1) as x
+				select p.* from ${this.getDatabase()}.sectorage p
+					inner join (select symbol, max(date) as date from ${this.getDatabase()}.sectorage where (date IS NULL OR date <= '${date}') group by 1) as x
 					on x.symbol=p.symbol and x.date=p.date
 					where p.symbol='${symbol}'
 				`);
@@ -45,8 +49,8 @@ class Quicker extends MyWrap {
 
 		const fetchPercents = async (symbol) => {
 			const [ res ] = await db.query(`
-				select p.* from stock.percentage p
-					inner join (select symbol, max(date) as date from stock.percentage where (date IS NULL OR date <= '${date}') group by 1) as x
+				select p.* from ${this.getDatabase()}.percentage p
+					inner join (select symbol, max(date) as date from ${this.getDatabase()}.percentage where (date IS NULL OR date <= '${date}') group by 1) as x
 					on x.symbol=p.symbol and x.date=p.date
 					where p.symbol='${symbol}'
 				`);
@@ -58,16 +62,16 @@ class Quicker extends MyWrap {
 		};
 
 		const fetchSecurity = async (symbol) => {
-			const [ res ] = await db.query(`select * from stock.security where (date IS NULL OR date <= '${date}') and symbol='${symbol}'`);
+			const [ res ] = await db.query(`select * from ${this.getDatabase()}.security where (date IS NULL OR date <= '${date}') and symbol='${symbol}'`);
 			const ret = res.map(({ symbol, name, expense }) => ({ symbol, name, expense }));
 			if (ret[0]) {
 				return ret[0];
 			}
-			console.log("ERROR - security found in 'stock.holding' w/no 'stock.security' row", symbol);
+			console.log(`ERROR - security found in '${this.getDatabase()}.holding' w/no '${this.getDatabase()}.security' row`, symbol);
 			return {};
 		};
 
-		const [ res ] = await db.query(`select distinct(symbol) as symbol from stock.holding where date <= '${date}' group by 1 having sum(shares) > 0`);
+		const [ res ] = await db.query(`select distinct(symbol) as symbol from ${this.getDatabase()}.holding where date <= '${date}' group by 1 having sum(shares) > 0`);
 		return await Promise.all(res.map(async ({ symbol }) => ({
 			symbol,
 			security: await fetchSecurity(symbol),
@@ -84,8 +88,8 @@ class Quicker extends MyWrap {
 			account = ` and account='${this.config.account}'`;
 		}
 		const [ res ] = await db.query(`select h.account, q.symbol, sum(h.shares) as shares, q.close, sum(h.shares) * q.close as value, sum(h.commission) as fees, q.date, sum(h.shares * h.price) as basis
-			from stock.holding h, stock.quote q
-			inner join (select symbol, max(date) as date from stock.quote where date <= '${date}' group by 1) as x
+			from ${this.getDatabase()}.holding h, ${this.getDatabase()}.quote q
+			inner join (select symbol, max(date) as date from ${this.getDatabase()}.quote where date <= '${date}' group by 1) as x
 			on x.symbol=q.symbol and x.date=q.date
 			where h.symbol=q.symbol
 			and date(h.date) <= '${date}'
@@ -115,7 +119,7 @@ class Quicker extends MyWrap {
 		for (var holding of holdings) {
 			const  { account, symbol, percents, sectors, security } = securities.find(f => f.symbol === holding.symbol) || {};
 			if (!symbol) {
-				console.log("ERROR - security found in 'stock.holding' w/no 'stock.security' row", holding.symbol);
+				console.log(`ERROR - security found in '${this.getDatabase()}.holding' w/no '${this.getDatabase()}.security' row`, holding.symbol);
 			} else {
 				const value = holding.value || 0;
 				sums.fees += holding.fees;

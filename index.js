@@ -1,10 +1,10 @@
 const MyWrap = require('mywrap');
 
-class Quickish extends MyWrap {
+class Quicker extends MyWrap {
 
 	constructor(config = {}) {
 		super(config.mysql);
-		this.config = config.quickish;
+		this.config = config.quicker;
 	}
 
 	setDate = (date = new Date()) => { this.date = new Date(date).toISOString(); console.log("DATE", date); }
@@ -151,4 +151,4 @@ class Quickish extends MyWrap {
 	};
 };
 
-module.exports = Quickish;
+module.exports = Quicker;

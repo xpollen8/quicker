@@ -3,16 +3,18 @@ const MyWrap = require('mywrap');
 class Quicker extends MyWrap {
 
 	constructor(config = {}) {
-		super(config.mysql);
-		this.config = {
+		const dbConfig = {
 			database: 'stock',
-			...config.quicker,
+			...config.mysql,
 		};
+		super(dbConfig);
+		this.database = dbConfig.database;
+		this.config = config.quicker;
 	}
 
 	setDate = (date = new Date()) => { this.date = new Date(date).toISOString(); console.log("DATE", date); }
 	getDate = () => this.date;
-	getDatabase = () => this.config.database;
+	getDatabase = () => this.database;
 
 	run = async () => await this.start();
 

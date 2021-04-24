@@ -1,5 +1,5 @@
 {
-  "name": "quickish",
+  "name": "quicker",
   "version": "1.0.0",
   "description": "stock quote management",
   "main": "index.js",
@@ -8,7 +8,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://https://github.com/xpollen8/quickish.git"
+    "url": "https://https://github.com/xpollen8/quicker.git"
   },
   "keywords": [
     "stock",

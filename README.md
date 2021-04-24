@@ -24,7 +24,7 @@ const Quicker = require('quicker');
   mysql: {
     database : 'stock',
   },
-  quickish: {
+  quicker: {
     //account: 'Tradeking',
   },
 });

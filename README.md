@@ -15,11 +15,11 @@ npm i --save https://github.com/xpollen8/quicker
 const Quicker = require('quicker');
 
 (async (config) => {
-  const { run, done, fetchGoalsByDate, fetchValuesByDate } = new Quicker(config);
-  await run();
+  const { start, finish, fetchGoalsByDate, fetchValuesByDate } = new Quicker(config);
+  await start();
   const { results, sums } = await fetchValuesByDate();
   console.log(results, sums);
-  await done();
+  await finish();
 })({
   mysql: {
     database : 'stock',

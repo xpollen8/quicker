@@ -20,9 +20,9 @@ class Quicker extends MyWrap {
 	getAccount = () => this.account;
 	getDatabase = () => this.database;
 
-	run = async () => await this.start();
+	start = async () => await this.start();
 
-	done = async () => this.finish();
+	finish = async () => this.finish();
 
 	fetchGoalsByDate = async () => {
 		const db = this.getDb();

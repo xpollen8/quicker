@@ -20,16 +20,12 @@ class Quicker extends MyWrap {
 	getAccount = () => this.account;
 	getDatabase = () => this.database;
 
-	start = async () => await this.start();
-
-	finish = async () => this.finish();
-
 	fetchGoalsByDate = async () => {
 		const db = this.getDb();
 		const date = this.getDate();
-		const [ res ] = await db.query(`select * from ${this.getDatabase()}.goal where (date IS NULL OR date <= '${date}') order by name, date`);
+		const res = await db.query(`select * from ${this.getDatabase()}.goal where (date IS NULL OR date <= '${date}') order by name, date`);
 		const goal = {};
-		for (var { name, percentage } of res ) {
+		for (var { name, percentage } of (Array.isArray(res) ? res : [ res ]) ) {
 			goal[name] = percentage;	// keeps most recent percentage
 		}
 		return goal;
@@ -40,13 +36,13 @@ class Quicker extends MyWrap {
 		const date = this.getDate();
 
 		const fetchSectors = async (symbol) => {
-			const [ res ] = await db.query(`
+			const res = await db.query(`
 				select p.* from ${this.getDatabase()}.sectorage p
 					inner join (select symbol, max(date) as date from ${this.getDatabase()}.sectorage where (date IS NULL OR date <= '${date}') group by 1) as x
 					on x.symbol=p.symbol and x.date=p.date
 					where p.symbol='${symbol}'
 				`);
-			const ret = res.map(({ name, percent }) => ({ name, percent }));
+			const ret = (Array.isArray(res) ? res : [ res ])?.map(({ name, percent }) => ({ name, percent }));
 			if (ret[0]) {
 				return ret;
 			}
@@ -54,13 +50,13 @@ class Quicker extends MyWrap {
 		};
 
 		const fetchPercents = async (symbol) => {
-			const [ res ] = await db.query(`
+			const res = await db.query(`
 				select p.* from ${this.getDatabase()}.percentage p
 					inner join (select symbol, max(date) as date from ${this.getDatabase()}.percentage where (date IS NULL OR date <= '${date}') group by 1) as x
 					on x.symbol=p.symbol and x.date=p.date
 					where p.symbol='${symbol}'
 				`);
-			const ret = res.map(({ name, percent, isforeign }) => ({ name, percent, isforeign }));
+			const ret = res && (Array.isArray(res) ? res : [ res ])?.map(({ name, percent, isforeign }) => ({ name, percent, isforeign })) || [];
 			if (ret[0]) {
 				return ret;
 			}
@@ -68,8 +64,8 @@ class Quicker extends MyWrap {
 		};
 
 		const fetchSecurity = async (symbol) => {
-			const [ res ] = await db.query(`select * from ${this.getDatabase()}.security where (date IS NULL OR date <= '${date}') and symbol='${symbol}'`);
-			const ret = res.map(({ symbol, name, expense }) => ({ symbol, name, expense }));
+			const res = await db.query(`select * from ${this.getDatabase()}.security where (date IS NULL OR date <= '${date}') and symbol='${symbol}'`);
+			const ret = (Array.isArray(res) ? res : [ res ])?.map(({ symbol, name, expense }) => ({ symbol, name, expense }));
 			if (ret[0]) {
 				return ret[0];
 			}
@@ -77,8 +73,8 @@ class Quicker extends MyWrap {
 			return {};
 		};
 
-		const [ res ] = await db.query(`select distinct(symbol) as symbol from ${this.getDatabase()}.holding where date <= '${date}' group by 1 having sum(shares) > 0`);
-		return await Promise.all(res.map(async ({ symbol }) => ({
+		const res = await db.query(`select distinct(symbol) as symbol from ${this.getDatabase()}.holding where date <= '${date}' group by 1 having sum(shares) > 0`);
+		return await Promise.all((Array.isArray(res) ? res : [ res ])?.map(async ({ symbol }) => ({
 			symbol,
 			security: await fetchSecurity(symbol),
 			sectors: await fetchSectors(symbol),
@@ -93,7 +89,7 @@ class Quicker extends MyWrap {
 		if (this.getAccount()) {
 			account = ` and account='${this.getAccount()}'`;
 		}
-		const [ res ] = await db.query(`select h.account, q.symbol, sum(h.shares) as shares, q.close, sum(h.shares) * q.close as value, sum(h.commission) as fees, q.date, sum(h.shares * h.price) as basis
+		const res = await db.query(`select h.account, q.symbol, sum(h.shares) as shares, q.close, sum(h.shares) * q.close as value, sum(h.commission) as fees, q.date, sum(h.shares * h.price) as basis
 			from ${this.getDatabase()}.holding h, ${this.getDatabase()}.quote q
 			inner join (select symbol, max(date) as date from ${this.getDatabase()}.quote where date <= '${date}' group by 1) as x
 			on x.symbol=q.symbol and x.date=q.date
@@ -105,7 +101,7 @@ class Quicker extends MyWrap {
 			group by 1, 2
 			having shares > 0
 			`);
-		return res.map(({ account, symbol, shares, close, value, basis, fees }) =>
+		return (Array.isArray(res) ? res : [ res ])?.map(({ account, symbol, shares, close, value, basis, fees }) =>
 			({ account, symbol, shares, quote: close, value, basis, fees }));
 	};
 
@@ -138,14 +134,14 @@ class Quicker extends MyWrap {
 					account,
 					...security,
 					...holding,
-					sectors: sectors.map(({ name, percent }) => {
+					sectors: sectors?.map(({ name, percent }) => {
 						if (!sums.sectors[name]) { sums.sectors[name] = 0; }
 						ssum += percent;
 						const part = value * percent / 100;
 						sums.sectors[name] += part; 
 						return { name, percent, value: part };
 					}),
-					classes: percents.map(({ name, percent, isforeign }) => {
+					classes: percents?.map(({ name, percent, isforeign }) => {
 						if (!sums.classes[name]) { sums.classes[name] = 0; }
 						tsum += percent;
 						const part = value * percent / 100;
